@@ -1,0 +1,40 @@
+{
+  "name": "smart-classroom-scheduler",
+  "version": "1.0.0",
+  "description": "Intelligent Smart Classroom & Timetable Scheduler for Higher Education Institutions",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "start": "npm run server:start",
+    "server:dev": "cd server && npm run dev",
+    "server:start": "cd server && npm start",
+    "client:dev": "cd client && npm start",
+    "client:build": "cd client && npm run build",
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "install:all": "npm run install:server && npm run install:client",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "seed": "cd server && npm run seed"
+  },
+  "keywords": [
+    "timetable",
+    "scheduling",
+    "classroom",
+    "education",
+    "optimization",
+    "constraint-satisfaction",
+    "university",
+    "college"
+  ],
+  "author": "Smart Classroom Scheduler Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
