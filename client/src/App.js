@@ -9,6 +9,11 @@ import Dashboard from './pages/Dashboard';
 import TimetableGenerator from './pages/TimetableGenerator';
 import TimetableView from './pages/TimetableView';
 import DataManagement from './pages/DataManagement';
+
+// Management components
+import FacultyManagement from './pages/management/FacultyManagement';
+import ClassroomManagement from './pages/management/ClassroomManagement';
+import SubjectManagement from './pages/management/SubjectManagement';
 import './styles/tailwind.css';
 
 const queryClient = new QueryClient({
@@ -32,6 +37,35 @@ function ProtectedRoute({ children }) {
   }
   
   return user ? children : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (user.role !== 'admin' && user.role !== 'hod') {
+    return (
+      <Layout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
+          <p className="text-gray-600 mt-2">Only Admin and HOD users can access this section.</p>
+        </div>
+      </Layout>
+    );
+  }
+  
+  return children;
 }
 
 function AppRoutes() {
@@ -66,6 +100,23 @@ function AppRoutes() {
         <ProtectedRoute>
           <Layout><DataManagement /></Layout>
         </ProtectedRoute>
+      } />
+      
+      {/* Management Routes - Admin/HOD Only */}
+      <Route path="/management/faculty" element={
+        <AdminRoute>
+          <Layout><FacultyManagement /></Layout>
+        </AdminRoute>
+      } />
+      <Route path="/management/classrooms" element={
+        <AdminRoute>
+          <Layout><ClassroomManagement /></Layout>
+        </AdminRoute>
+      } />
+      <Route path="/management/subjects" element={
+        <AdminRoute>
+          <Layout><SubjectManagement /></Layout>
+        </AdminRoute>
       } />
     </Routes>
   );

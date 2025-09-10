@@ -25,7 +25,7 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Link
           to="/generator"
           className="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-lg shadow-md transition-colors"
@@ -46,8 +46,8 @@ const Dashboard = () => {
           <div className="flex items-center">
             <span className="text-2xl mr-3">📋</span>
             <div>
-              <h3 className="text-lg font-semibold">Manage Data</h3>
-              <p className="text-sm opacity-90">Add subjects, classrooms, faculty</p>
+              <h3 className="text-lg font-semibold">Manage Students Data</h3>
+              <p className="text-sm opacity-90">Add subjects, syllabus, regulations</p>
             </div>
           </div>
         </Link>
@@ -62,6 +62,49 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Management Quick Access - Admin/HOD Only */}
+      {(user?.role === 'admin' || user?.role === 'hod') && (
+        <>
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Management Overview</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link
+                to="/management/faculty"
+                className="border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:bg-indigo-50 p-4 rounded-lg transition-all"
+              >
+                <div className="text-center">
+                  <span className="text-3xl block mb-2">👥</span>
+                  <h3 className="text-sm font-medium text-gray-900">Manage Faculty</h3>
+                  <p className="text-xs text-gray-500 mt-1">Add, edit faculty members</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/management/classrooms"
+                className="border-2 border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 p-4 rounded-lg transition-all"
+              >
+                <div className="text-center">
+                  <span className="text-3xl block mb-2">🏫</span>
+                  <h3 className="text-sm font-medium text-gray-900">Manage Classrooms</h3>
+                  <p className="text-xs text-gray-500 mt-1">Configure rooms & resources</p>
+                </div>
+              </Link>
+
+              <Link
+                to="/management/subjects"
+                className="border-2 border-dashed border-gray-300 hover:border-purple-400 hover:bg-purple-50 p-4 rounded-lg transition-all"
+              >
+                <div className="text-center">
+                  <span className="text-3xl block mb-2">📚</span>
+                  <h3 className="text-sm font-medium text-gray-900">Manage Subjects</h3>
+                  <p className="text-xs text-gray-500 mt-1">Add courses & requirements</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Recent Timetables */}
       <div className="bg-white shadow rounded-lg">

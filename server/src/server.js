@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+
+// Clear any cached environment variables and reload
+delete process.env.MONGO_URI;
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -40,6 +43,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
+console.log('🔍 MONGO_URI preview:', process.env.MONGO_URI?.substring(0, 50) + '...');
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smart_classroom', {
   useNewUrlParser: true,
   useUnifiedTopology: true,

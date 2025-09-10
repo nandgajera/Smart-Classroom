@@ -31,7 +31,7 @@
   "author": "Smart Classroom Scheduler Team",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.0.1"
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=16.0.0",
