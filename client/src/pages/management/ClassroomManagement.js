@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const ClassroomManagement = () => {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ const ClassroomManagement = () => {
 
   const fetchClassrooms = async () => {
     try {
-      const response = await axios.get('/classrooms');
+      const response = await api.get('/classrooms');
       if (response.data.success) {
         setClassrooms(response.data.classrooms);
       }
@@ -73,7 +74,7 @@ const ClassroomManagement = () => {
       const endpoint = editingClassroom ? `/classrooms/${editingClassroom._id}` : '/classrooms';
       const method = editingClassroom ? 'put' : 'post';
       
-      const response = await axios[method](endpoint, formData);
+      const response = await api[method](endpoint, formData);
       
       if (response.data.success) {
         toast.success(editingClassroom ? 'Classroom updated successfully' : 'Classroom added successfully');
@@ -109,7 +110,7 @@ const ClassroomManagement = () => {
     }
 
     try {
-      const response = await axios.delete(`/classrooms/${classroomId}`);
+      const response = await api.delete(`/classrooms/${classroomId}`);
       if (response.data.success) {
         toast.success('Classroom deleted successfully');
         fetchClassrooms();

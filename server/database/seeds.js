@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 // Import models
 const User = require('../src/models/User');
@@ -13,7 +13,7 @@ const Classroom = require('../src/models/Classroom');
 const Batch = require('../src/models/Batch');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/smartclassroom', {
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartclassroom', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

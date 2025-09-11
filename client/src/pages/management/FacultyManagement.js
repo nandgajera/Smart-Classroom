@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const FacultyManagement = () => {
   const { user } = useAuth();
@@ -32,7 +33,7 @@ const FacultyManagement = () => {
 
   const fetchFaculty = async () => {
     try {
-      const response = await axios.get('/faculty');
+      const response = await api.get('/faculty');
       if (response.data.success) {
         setFaculty(response.data.faculty);
       }
@@ -51,7 +52,7 @@ const FacultyManagement = () => {
       const endpoint = editingFaculty ? `/faculty/${editingFaculty._id}` : '/faculty';
       const method = editingFaculty ? 'put' : 'post';
       
-      const response = await axios[method](endpoint, formData);
+      const response = await api[method](endpoint, formData);
       
       if (response.data.success) {
         toast.success(editingFaculty ? 'Faculty updated successfully' : 'Faculty added successfully');
@@ -87,7 +88,7 @@ const FacultyManagement = () => {
     }
 
     try {
-      const response = await axios.delete(`/faculty/${facultyId}`);
+      const response = await api.delete(`/faculty/${facultyId}`);
       if (response.data.success) {
         toast.success('Faculty deleted successfully');
         fetchFaculty();

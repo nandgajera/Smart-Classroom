@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const SubjectManagement = () => {
   const { user } = useAuth();
@@ -63,7 +64,7 @@ const SubjectManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const response = await axios.get('/subjects');
+      const response = await api.get('/subjects');
       if (response.data.success) {
         setSubjects(response.data.subjects);
       }
@@ -97,7 +98,7 @@ const SubjectManagement = () => {
         }
       };
       
-      const response = await axios[method](endpoint, submitData);
+      const response = await api[method](endpoint, submitData);
       
       if (response.data.success) {
         toast.success(editingSubject ? 'Subject updated successfully' : 'Subject added successfully');
@@ -146,7 +147,7 @@ const SubjectManagement = () => {
     }
 
     try {
-      const response = await axios.delete(`/subjects/${subjectId}`);
+      const response = await api.delete(`/subjects/${subjectId}`);
       if (response.data.success) {
         toast.success('Subject deleted successfully');
         fetchSubjects();
