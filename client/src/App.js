@@ -11,7 +11,7 @@ import TimetableView from './pages/TimetableView';
 import DataManagement from './pages/DataManagement';
 
 // Management components
-import FacultyManagement from './pages/management/FacultyManagement';
+import FacultyManagement from './pages/FacultyManagement';
 import ClassroomManagement from './pages/management/ClassroomManagement';
 import SubjectManagement from './pages/management/SubjectManagement';
 

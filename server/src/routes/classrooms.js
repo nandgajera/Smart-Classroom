@@ -26,7 +26,8 @@ router.get('/', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      classrooms,
+      classrooms: classrooms, // Keep both for compatibility
+      data: classrooms,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
@@ -42,6 +43,26 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @desc    Get classroom by ID
+// @route   GET /api/classrooms/:id
+// @access  Private
+router.get('/:id', async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+    
+    if (!classroom) {
+      return res.status(404).json({
+        success: false,
+        message: 'Classroom not found'
+      });
+    }
+
+    res.status(200).json({ success: true, data: classroom });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 // @desc    Create classroom
 // @route   POST /api/classrooms
 // @access  Private (Admin only)
@@ -52,7 +73,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Classroom created successfully',
-      classroom
+      data: classroom
     });
   } catch (error) {
     res.status(400).json({
@@ -62,6 +83,7 @@ router.post('/', async (req, res) => {
   }
 });
 
+// <<<<<<< HEAD
 // @desc    Get single classroom
 // @route   GET /api/classrooms/:id
 // @access  Private
@@ -83,16 +105,30 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
+// =======
+// // @desc    Update classroom
+// // @route   PUT /api/classrooms/:id
+// // @access  Private (Admin/HOD)
+// router.put('/:id', authorize('admin', 'hod'), async (req, res) => {
+//   try {
+//     const classroom = await Classroom.findById(req.params.id);
+
+// >>>>>>> 5a85c3e28a014e3c93a6517daa9bd4bb4eb511b1
     if (!classroom) {
       return res.status(404).json({ success: false, message: 'Classroom not found' });
     }
 
+// <<<<<<< HEAD
     const updatedClassroom = await Classroom.findByIdAndUpdate(
+// =======
+//     const updated = await Classroom.findByIdAndUpdate(
+// >>>>>>> 5a85c3e28a014e3c93a6517daa9bd4bb4eb511b1
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
 
+// <<<<<<< HEAD
     res.json({
       success: true,
       message: 'Classroom updated successfully',
@@ -112,10 +148,26 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const classroom = await Classroom.findById(req.params.id);
+// =======
+    res.status(200).json({ success: true, message: 'Classroom updated successfully', data: updated });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// @desc    Delete classroom (soft delete)
+// @route   DELETE /api/classrooms/:id
+// @access  Private (Admin only)
+router.delete('/:id', authorize('admin'), async (req, res) => {
+  try {
+    const classroom = await Classroom.findById(req.params.id);
+
+// >>>>>>> 5a85c3e28a014e3c93a6517daa9bd4bb4eb511b1
     if (!classroom) {
       return res.status(404).json({ success: false, message: 'Classroom not found' });
     }
 
+// <<<<<<< HEAD
     await Classroom.findByIdAndDelete(req.params.id);
 
     res.json({
@@ -127,6 +179,13 @@ router.delete('/:id', async (req, res) => {
       success: false,
       message: error.message
     });
+// =======
+//     await Classroom.findByIdAndUpdate(req.params.id, { isActive: false });
+
+//     res.status(200).json({ success: true, message: 'Classroom deleted successfully' });
+//   } catch (error) {
+//     res.status(400).json({ success: false, message: error.message });
+// >>>>>>> 5a85c3e28a014e3c93a6517daa9bd4bb4eb511b1
   }
 });
 

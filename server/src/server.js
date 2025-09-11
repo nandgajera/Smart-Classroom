@@ -12,6 +12,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const facultyRoutes = require('./routes/faculty');
+const facultySubjectRoutes = require('./routes/facultySubjects');
 const classroomRoutes = require('./routes/classrooms');
 const subjectRoutes = require('./routes/subjects');
 const batchRoutes = require('./routes/batches');
@@ -58,6 +59,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smart_class
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticate, userRoutes);
 app.use('/api/faculty', authenticate, facultyRoutes);
+app.use('/api/faculty-subjects', authenticate, facultySubjectRoutes);
 app.use('/api/classrooms', authenticate, classroomRoutes);
 app.use('/api/subjects', authenticate, subjectRoutes);
 app.use('/api/batches', authenticate, batchRoutes);
