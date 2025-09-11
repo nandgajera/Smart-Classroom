@@ -389,4 +389,116 @@ router.get('/:id/leaves', authenticate, async (req, res) => {
   }
 });
 
+// @desc    Assign subject to faculty
+// @route   POST /api/faculty/assign-subject
+// @access  Private (Admin, HOD)
+router.post('/assign-subject', authenticate, authorize('admin', 'hod'), async (req, res) => {
+  try {
+    const {
+      facultyId,
+      subjectId,
+      batchId,
+      classroomId,
+      semester,
+      academicYear = '2024-25',
+      schedule = []
+    } = req.body;
+
+    // Validate required fields
+    if (!facultyId || !subjectId || !batchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faculty ID, Subject ID, and Batch ID are required'
+      });
+    }
+
+    // Check if faculty exists
+    const faculty = await Faculty.findById(facultyId);
+    if (!faculty) {
+      return res.status(404).json({
+        success: false,
+        message: 'Faculty member not found'
+      });
+    }
+
+    // Check if subject exists
+    const subject = await Subject.findById(subjectId);
+    if (!subject) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subject not found'
+      });
+    }
+
+    // Check if batch exists
+    const batch = await Batch.findById(batchId);
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Batch not found'
+      });
+    }
+
+    // Check if classroom exists (if provided)
+    let classroom = null;
+    if (classroomId) {
+      classroom = await Classroom.findById(classroomId);
+      if (!classroom) {
+        return res.status(404).json({
+          success: false,
+          message: 'Classroom not found'
+        });
+      }
+    }
+
+    // Check for existing assignment
+    const existingAssignment = await FacultySubject.findOne({
+      faculty: facultyId,
+      subject: subjectId,
+      batch: batchId,
+      semester,
+      academicYear,
+      status: 'active'
+    });
+
+    if (existingAssignment) {
+      return res.status(400).json({
+        success: false,
+        message: 'This faculty is already assigned to teach this subject for this batch'
+      });
+    }
+
+    // Create the assignment
+    const assignment = await FacultySubject.create({
+      faculty: facultyId,
+      subject: subjectId,
+      batch: batchId,
+      classroom: classroomId || null,
+      semester,
+      academicYear,
+      schedule: schedule.length > 0 ? schedule : [],
+      status: 'active',
+      assignedBy: req.user.id,
+      assignedDate: new Date()
+    });
+
+    const populatedAssignment = await FacultySubject.findById(assignment._id)
+      .populate('faculty', 'user professionalInfo')
+      .populate('subject', 'name code type')
+      .populate('batch', 'name course')
+      .populate('classroom', 'roomNumber building type');
+
+    res.status(201).json({
+      success: true,
+      message: 'Subject assigned to faculty successfully',
+      data: populatedAssignment
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

@@ -20,6 +20,8 @@ const timetableRoutes = require('./routes/timetables');
 const schoolRoutes = require('./routes/schools');
 const courseRoutes = require('./routes/courses');
 const studentRoutes = require('./routes/students');
+const leaveRequestRoutes = require('./routes/leaveRequests');
+const rescheduleRequestRoutes = require('./routes/rescheduleRequests');
 
 // Import middleware
 const { authenticate } = require('./middleware/auth');
@@ -63,10 +65,12 @@ app.use('/api/faculty-subjects', authenticate, facultySubjectRoutes);
 app.use('/api/classrooms', authenticate, classroomRoutes);
 app.use('/api/subjects', authenticate, subjectRoutes);
 app.use('/api/batches', authenticate, batchRoutes);
-app.use('/api/timetables', authenticate, timetableRoutes);
+app.use('/api/timetables', timetableRoutes);
 app.use('/api/schools', authenticate, schoolRoutes);
 app.use('/api/courses', authenticate, courseRoutes);
 app.use('/api/students', authenticate, studentRoutes);
+app.use('/api/leave-requests', leaveRequestRoutes);
+app.use('/api/reschedule-requests', rescheduleRequestRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

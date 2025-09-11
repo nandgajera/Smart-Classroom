@@ -1,22 +1,115 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const LeaveRequest = () => {
   const { user } = useAuth();
   const [showNewRequestForm, setShowNewRequestForm] = useState(false);
+  const [showRescheduleForm, setShowRescheduleForm] = useState(false);
   const [activeTab, setActiveTab] = useState('my-requests');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+  const [statistics, setStatistics] = useState({
+    totalRequests: 0,
+    pending: 0,
+    approved: 0,
+    totalLeaveDays: 0
+  });
+  const [sessions, setSessions] = useState([]);
   const [formData, setFormData] = useState({
-    type: 'leave',
-    subject: '',
+    leaveType: 'sick',
     startDate: '',
     endDate: '',
     reason: '',
     priority: 'medium',
-    proposedSolution: ''
+    isFullDay: true
+  });
+  const [rescheduleFormData, setRescheduleFormData] = useState({
+    originalSessionId: '',
+    requestedDate: '',
+    requestedStartTime: '',
+    requestedEndTime: '',
+    rescheduleType: 'planned',
+    reason: '',
+    priority: 'medium'
   });
 
-  // Mock data for user's requests
-  const mockRequests = [
+  // API base URL
+  const API_BASE_URL = 'http://localhost:4000/api';
+
+  // Configure axios defaults
+  useEffect(() => {
+    if (user?.token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
+    }
+  }, [user]);
+
+  // Fetch all data on component mount
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [leaveRes, rescheduleRes, statsRes, sessionsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/leave-requests`),
+        axios.get(`${API_BASE_URL}/reschedule-requests`),
+        axios.get(`${API_BASE_URL}/leave-requests/statistics`),
+        axios.get(`${API_BASE_URL}/reschedule-requests/sessions`)
+      ]);
+
+      setLeaveRequests(leaveRes.data.data || []);
+      setRescheduleRequests(rescheduleRes.data.data || []);
+      setStatistics(statsRes.data.data || {});
+      setSessions(sessionsRes.data.data || []);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err.response?.data?.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Convert API data to display format for backward compatibility
+  const allRequests = [
+    ...leaveRequests.map(req => ({
+      id: req._id,
+      type: 'leave',
+      subject: `${req.leaveType.charAt(0).toUpperCase() + req.leaveType.slice(1)} Leave`,
+      startDate: new Date(req.startDate).toISOString().split('T')[0],
+      endDate: new Date(req.endDate).toISOString().split('T')[0],
+      reason: req.reason,
+      priority: req.priority.charAt(0).toUpperCase() + req.priority.slice(1),
+      status: req.status,
+      submittedDate: new Date(req.submissionDate).toISOString().split('T')[0],
+      hodResponse: req.approvalComments,
+      responseDate: req.approvalDate ? new Date(req.approvalDate).toISOString().split('T')[0] : null,
+      duration: req.duration || Math.ceil((new Date(req.endDate) - new Date(req.startDate)) / (1000 * 60 * 60 * 24)) + 1
+    })),
+    ...rescheduleRequests.map(req => ({
+      id: req._id,
+      type: 'reschedule',
+      subject: `Reschedule ${req.originalSession?.subject?.name || 'Session'}`,
+      startDate: new Date(req.requestedDate).toISOString().split('T')[0],
+      endDate: new Date(req.requestedDate).toISOString().split('T')[0],
+      reason: req.reason,
+      priority: req.priority.charAt(0).toUpperCase() + req.priority.slice(1),
+      status: req.status,
+      submittedDate: new Date(req.submissionDate).toISOString().split('T')[0],
+      hodResponse: req.approvalComments,
+      responseDate: req.approvalDate ? new Date(req.approvalDate).toISOString().split('T')[0] : null,
+      originalTime: `${req.originalStartTime} - ${req.originalEndTime}`,
+      requestedTime: `${req.requestedStartTime} - ${req.requestedEndTime}`
+    }))
+  ];
+
+  // Fallback to mock data structure for display
+  const mockRequests = allRequests.length > 0 ? allRequests : [
     {
       id: 1,
       type: 'leave',
@@ -57,21 +150,69 @@ const LeaveRequest = () => {
     }
   ];
 
-  const handleSubmit = (e) => {
+  const handleLeaveSubmit = async (e) => {
     e.preventDefault();
-    // In a real app, this would make an API call
-    console.log('Submitting request:', formData);
-    setShowNewRequestForm(false);
-    setFormData({
-      type: 'leave',
-      subject: '',
-      startDate: '',
-      endDate: '',
-      reason: '',
-      priority: 'medium',
-      proposedSolution: ''
-    });
-    // Add success toast notification
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/leave-requests`, formData);
+      
+      if (response.data.success) {
+        // Reset form
+        setFormData({
+          leaveType: 'sick',
+          startDate: '',
+          endDate: '',
+          reason: '',
+          priority: 'medium',
+          isFullDay: true
+        });
+        setShowNewRequestForm(false);
+        
+        // Refresh data
+        await fetchAllData();
+        
+        // Show success message
+        alert('Leave request submitted successfully!');
+      }
+    } catch (err) {
+      console.error('Error submitting leave request:', err);
+      alert(err.response?.data?.message || 'Failed to submit request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRescheduleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}/reschedule-requests`, rescheduleFormData);
+      
+      if (response.data.success) {
+        // Reset form
+        setRescheduleFormData({
+          originalSessionId: '',
+          requestedDate: '',
+          requestedStartTime: '',
+          requestedEndTime: '',
+          rescheduleType: 'planned',
+          reason: '',
+          priority: 'medium'
+        });
+        setShowRescheduleForm(false);
+        
+        // Refresh data
+        await fetchAllData();
+        
+        // Show success message
+        alert('Reschedule request submitted successfully!');
+      }
+    } catch (err) {
+      console.error('Error submitting reschedule request:', err);
+      alert(err.response?.data?.message || 'Failed to submit request');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -117,63 +258,102 @@ const LeaveRequest = () => {
           <h1 className="text-3xl font-bold text-gray-900">Leave & Reschedule Requests</h1>
           <p className="text-gray-600 mt-1">Manage your leave applications and schedule changes</p>
         </div>
-        <button
-          onClick={() => setShowNewRequestForm(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium"
-        >
-          ➕ New Request
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowNewRequestForm(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium"
+          >
+            🏖️ New Leave Request
+          </button>
+          <button
+            onClick={() => setShowRescheduleForm(true)}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+          >
+            📅 New Reschedule Request
+          </button>
+        </div>
       </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white p-6 rounded-lg shadow border text-center">
+          <div className="text-4xl mb-4">⏳</div>
+          <p className="text-gray-600">Loading your requests...</p>
+        </div>
+      )}
+      
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
+          <div className="flex items-center">
+            <div className="text-2xl mr-3">❌</div>
+            <div>
+              <h3 className="text-red-800 font-medium">Error Loading Data</h3>
+              <p className="text-red-600 text-sm">{error}</p>
+              <button 
+                onClick={fetchAllData}
+                className="mt-2 text-red-700 hover:text-red-800 underline text-sm"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Requests</p>
-              <p className="text-2xl font-bold text-indigo-600">{mockRequests.length}</p>
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Requests</p>
+                <p className="text-2xl font-bold text-indigo-600">{allRequests.length}</p>
+              </div>
+              <div className="text-3xl">📋</div>
             </div>
-            <div className="text-3xl">📋</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {statistics.pending || allRequests.filter(r => r.status === 'pending').length}
+                </p>
+              </div>
+              <div className="text-3xl">⏳</div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {statistics.approved || allRequests.filter(r => r.status === 'approved').length}
+                </p>
+              </div>
+              <div className="text-3xl">✅</div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Leave Days Used</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {statistics.totalLeaveDays || 0}/30
+                </p>
+              </div>
+              <div className="text-3xl">📊</div>
+            </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {mockRequests.filter(r => r.status === 'pending').length}
-              </p>
-            </div>
-            <div className="text-3xl">⏳</div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Approved</p>
-              <p className="text-2xl font-bold text-green-600">
-                {mockRequests.filter(r => r.status === 'approved').length}
-              </p>
-            </div>
-            <div className="text-3xl">✅</div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Leave Days Used</p>
-              <p className="text-2xl font-bold text-blue-600">8/30</p>
-            </div>
-            <div className="text-3xl">📊</div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* New Request Form */}
+      {/* New Leave Request Form */}
       {showNewRequestForm && (
         <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">New Request</h2>
+            <h2 className="text-xl font-semibold text-gray-900">New Leave Request</h2>
             <button
               onClick={() => setShowNewRequestForm(false)}
               className="text-gray-400 hover:text-gray-600"
@@ -182,21 +362,27 @@ const LeaveRequest = () => {
             </button>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLeaveSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Request Type
+                  Leave Type
                 </label>
                 <select
-                  name="type"
-                  value={formData.type}
+                  name="leaveType"
+                  value={formData.leaveType}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   required
                 >
-                  <option value="leave">Leave Request</option>
-                  <option value="reschedule">Reschedule Request</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="personal">Personal Leave</option>
+                  <option value="emergency">Emergency Leave</option>
+                  <option value="vacation">Vacation</option>
+                  <option value="maternity">Maternity Leave</option>
+                  <option value="paternity">Paternity Leave</option>
+                  <option value="bereavement">Bereavement Leave</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
               
@@ -214,23 +400,9 @@ const LeaveRequest = () => {
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject
-              </label>
-              <input
-                type="text"
-                name="subject"
-                value={formData.subject}
-                onChange={handleInputChange}
-                placeholder="Brief description of your request"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
-              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -243,6 +415,7 @@ const LeaveRequest = () => {
                   name="startDate"
                   value={formData.startDate}
                   onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   required
                 />
@@ -257,10 +430,25 @@ const LeaveRequest = () => {
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
+                  min={formData.startDate || new Date().toISOString().split('T')[0]}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isFullDay"
+                name="isFullDay"
+                checked={formData.isFullDay}
+                onChange={(e) => setFormData(prev => ({ ...prev, isFullDay: e.target.checked }))}
+                className="mr-2"
+              />
+              <label htmlFor="isFullDay" className="text-sm font-medium text-gray-700">
+                Full day leave (uncheck for partial day)
+              </label>
             </div>
 
             <div>
@@ -271,37 +459,179 @@ const LeaveRequest = () => {
                 name="reason"
                 value={formData.reason}
                 onChange={handleInputChange}
-                placeholder="Detailed reason for your request"
+                placeholder="Detailed reason for your leave request"
                 rows={4}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
 
+            <div className="flex space-x-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium"
+              >
+                {loading ? 'Submitting...' : 'Submit Leave Request'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNewRequestForm(false)}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* New Reschedule Request Form */}
+      {showRescheduleForm && (
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">New Reschedule Request</h2>
+            <button
+              onClick={() => setShowRescheduleForm(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <form onSubmit={handleRescheduleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Session to Reschedule
+                </label>
+                <select
+                  name="originalSessionId"
+                  value={rescheduleFormData.originalSessionId}
+                  onChange={(e) => setRescheduleFormData(prev => ({ ...prev, originalSessionId: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select a session</option>
+                  {sessions.map(session => (
+                    <option key={session._id} value={session._id}>
+                      {session.subject?.name} - {session.batch?.name} ({session.day} {session.startTime})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reschedule Type
+                </label>
+                <select
+                  name="rescheduleType"
+                  value={rescheduleFormData.rescheduleType}
+                  onChange={(e) => setRescheduleFormData(prev => ({ ...prev, rescheduleType: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="planned">Planned</option>
+                  <option value="emergency">Emergency</option>
+                  <option value="conflict">Schedule Conflict</option>
+                  <option value="personal">Personal</option>
+                  <option value="administrative">Administrative</option>
+                  <option value="technical">Technical Issues</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Requested Date
+                </label>
+                <input
+                  type="date"
+                  name="requestedDate"
+                  value={rescheduleFormData.requestedDate}
+                  onChange={(e) => setRescheduleFormData(prev => ({ ...prev, requestedDate: e.target.value }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  name="requestedStartTime"
+                  value={rescheduleFormData.requestedStartTime}
+                  onChange={(e) => setRescheduleFormData(prev => ({ ...prev, requestedStartTime: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  name="requestedEndTime"
+                  value={rescheduleFormData.requestedEndTime}
+                  onChange={(e) => setRescheduleFormData(prev => ({ ...prev, requestedEndTime: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Proposed Solution (Optional)
+                Priority
+              </label>
+              <select
+                name="priority"
+                value={rescheduleFormData.priority}
+                onChange={(e) => setRescheduleFormData(prev => ({ ...prev, priority: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for Reschedule
               </label>
               <textarea
-                name="proposedSolution"
-                value={formData.proposedSolution}
-                onChange={handleInputChange}
-                placeholder="How you plan to handle your classes/responsibilities"
-                rows={3}
+                name="reason"
+                value={rescheduleFormData.reason}
+                onChange={(e) => setRescheduleFormData(prev => ({ ...prev, reason: e.target.value }))}
+                placeholder="Detailed reason for rescheduling this session"
+                rows={4}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
               />
             </div>
 
             <div className="flex space-x-4">
               <button
                 type="submit"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium"
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium"
               >
-                Submit Request
+                {loading ? 'Submitting...' : 'Submit Reschedule Request'}
               </button>
               <button
                 type="button"
-                onClick={() => setShowNewRequestForm(false)}
+                onClick={() => setShowRescheduleForm(false)}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-lg font-medium"
               >
                 Cancel

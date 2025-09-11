@@ -1,34 +1,32 @@
 const express = require('express');
 const Timetable = require('../models/Timetable');
 const TimetableScheduler = require('../algorithms/TimetableScheduler');
-const { authorize } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
 // @desc    Generate new timetable
 // @route   POST /api/timetables/generate
 // @access  Private (Admin/HOD)
-router.post('/generate', authorize('admin', 'hod'), async (req, res) => {
+router.post('/generate', authenticate, authorize('admin', 'hod'), async (req, res) => {
   try {
     const {
       name,
       academicYear,
       semester,
       department,
-      constraints,
-      algorithm = 'constraint_satisfaction'
+      constraints
     } = req.body;
 
     // Initialize scheduler
     const scheduler = new TimetableScheduler();
     
-    // Generate timetable
+    // Generate timetable using advanced constraint satisfaction algorithm
     const generationResult = await scheduler.generateTimetable({
       academicYear,
       semester,
       department,
-      constraints,
-      algorithm
+      constraints
     });
 
     // Create timetable document
@@ -39,7 +37,7 @@ router.post('/generate', authorize('admin', 'hod'), async (req, res) => {
       department,
       schedule: generationResult.schedule,
       generatedBy: req.user._id,
-      algorithm,
+      algorithm: 'constraint_satisfaction',
       optimizationScore: generationResult.score,
       constraints: constraints || {},
       conflicts: generationResult.conflicts || [],
@@ -76,7 +74,7 @@ router.post('/generate', authorize('admin', 'hod'), async (req, res) => {
 // @desc    Get all timetables
 // @route   GET /api/timetables
 // @access  Private
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { 
       department, 
@@ -129,7 +127,7 @@ router.get('/', async (req, res) => {
 // @desc    Get single timetable
 // @route   GET /api/timetables/:id
 // @access  Private
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const timetable = await Timetable.findById(req.params.id)
       .populate('generatedBy approvedBy', 'name email role')
@@ -182,7 +180,7 @@ router.get('/:id', async (req, res) => {
 // @desc    Update timetable status
 // @route   PATCH /api/timetables/:id/status
 // @access  Private (Admin/HOD)
-router.patch('/:id/status', authorize('admin', 'hod'), async (req, res) => {
+router.patch('/:id/status', authenticate, authorize('admin', 'hod'), async (req, res) => {
   try {
     const { status } = req.body;
     const validStatuses = ['draft', 'pending_approval', 'approved', 'published', 'archived'];
@@ -232,7 +230,7 @@ router.patch('/:id/status', authorize('admin', 'hod'), async (req, res) => {
 // @desc    Delete timetable
 // @route   DELETE /api/timetables/:id
 // @access  Private (Admin only)
-router.delete('/:id', authorize('admin'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const timetable = await Timetable.findById(req.params.id);
     
@@ -262,7 +260,7 @@ router.delete('/:id', authorize('admin'), async (req, res) => {
 // @desc    Get conflicts for a timetable
 // @route   GET /api/timetables/:id/conflicts
 // @access  Private
-router.get('/:id/conflicts', async (req, res) => {
+router.get('/:id/conflicts', authenticate, async (req, res) => {
   try {
     const timetable = await Timetable.findById(req.params.id);
     

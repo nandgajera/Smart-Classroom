@@ -1,95 +1,147 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import axios from 'axios';
 
 const FacultyRequest = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('pending');
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [rescheduleRequests, setRescheduleRequests] = useState([]);
+  const [leaveStatistics, setLeaveStatistics] = useState({});
+  const [rescheduleStatistics, setRescheduleStatistics] = useState({});
 
-  // Mock data for faculty requests
+  // API base URL
+  const API_BASE_URL = 'http://localhost:4000/api';
+
+  // Configure axios defaults
+  useEffect(() => {
+    if (user?.token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
+    }
+  }, [user]);
+
+  // Fetch all data on component mount
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const [pendingLeaveRes, pendingRescheduleRes, leaveStatsRes, rescheduleStatsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/leave-requests/admin/pending`),
+        axios.get(`${API_BASE_URL}/reschedule-requests/admin/pending`),
+        axios.get(`${API_BASE_URL}/leave-requests/statistics`),
+        axios.get(`${API_BASE_URL}/reschedule-requests/statistics`)
+      ]);
+
+      setLeaveRequests(pendingLeaveRes.data.data || []);
+      setRescheduleRequests(pendingRescheduleRes.data.data || []);
+      setLeaveStatistics(leaveStatsRes.data.data || {});
+      setRescheduleStatistics(rescheduleStatsRes.data.data || {});
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+      setError(err.response?.data?.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Convert API data to display format
+  const allRequests = [
+    ...leaveRequests.map(req => ({
+      id: req._id,
+      requestType: 'Leave Request',
+      subject: `${req.leaveType.charAt(0).toUpperCase() + req.leaveType.slice(1)} Leave`,
+      facultyName: req.faculty?.name || 'Unknown Faculty',
+      department: req.faculty?.department || 'Unknown Department',
+      date: new Date(req.startDate).toISOString().split('T')[0],
+      endDate: new Date(req.endDate).toISOString().split('T')[0],
+      priority: req.priority.charAt(0).toUpperCase() + req.priority.slice(1),
+      reason: req.reason,
+      submittedDate: new Date(req.submissionDate).toISOString().split('T')[0],
+      status: req.status,
+      duration: req.duration,
+      isFullDay: req.isFullDay,
+      approvalComments: req.approvalComments,
+      approvalDate: req.approvalDate ? new Date(req.approvalDate).toISOString().split('T')[0] : null
+    })),
+    ...rescheduleRequests.map(req => ({
+      id: req._id,
+      requestType: 'Schedule Change',
+      subject: `Reschedule ${req.originalSession?.subject?.name || 'Session'}`,
+      facultyName: req.faculty?.name || 'Unknown Faculty', 
+      department: req.faculty?.department || 'Unknown Department',
+      date: new Date(req.requestedDate).toISOString().split('T')[0],
+      priority: req.priority.charAt(0).toUpperCase() + req.priority.slice(1),
+      reason: req.reason,
+      submittedDate: new Date(req.submissionDate).toISOString().split('T')[0],
+      status: req.status,
+      originalTime: `${req.originalStartTime} - ${req.originalEndTime}`,
+      requestedTime: `${req.requestedStartTime} - ${req.requestedEndTime}`,
+      rescheduleType: req.rescheduleType,
+      approvalComments: req.approvalComments,
+      approvalDate: req.approvalDate ? new Date(req.approvalDate).toISOString().split('T')[0] : null
+    }))
+  ];
+
   const mockRequests = {
-    pending: [
-      {
-        id: 1,
-        facultyName: 'Dr. Sarah Johnson',
-        department: 'Computer Science',
-        requestType: 'Schedule Change',
-        subject: 'Request to reschedule Database Systems lecture',
-        date: '2024-01-15',
-        priority: 'High',
-        reason: 'Medical appointment conflict on Tuesday 10 AM slot',
-        proposedSolution: 'Move to Wednesday 2 PM or Thursday 11 AM',
-        submittedDate: '2024-01-12',
-        status: 'pending'
-      },
-      {
-        id: 2,
-        facultyName: 'Prof. Michael Chen',
-        department: 'Mathematics',
-        requestType: 'Leave Request',
-        subject: 'Academic conference attendance',
-        date: '2024-01-20',
-        priority: 'Medium',
-        reason: 'Presenting research paper at International Math Conference',
-        proposedSolution: 'Arrange substitute lecturer for 3 days',
-        submittedDate: '2024-01-10',
-        status: 'pending'
-      },
-      {
-        id: 3,
-        facultyName: 'Dr. Emily Rodriguez',
-        department: 'Physics',
-        requestType: 'Resource Request',
-        subject: 'Additional laboratory equipment',
-        date: '2024-01-18',
-        priority: 'Low',
-        reason: 'Need microscopes for advanced physics lab sessions',
-        proposedSolution: 'Budget allocation for 5 new microscopes',
-        submittedDate: '2024-01-11',
-        status: 'pending'
-      }
-    ],
-    approved: [
-      {
-        id: 4,
-        facultyName: 'Dr. James Wilson',
-        department: 'Chemistry',
-        requestType: 'Schedule Change',
-        subject: 'Organic Chemistry lab timing adjustment',
-        date: '2024-01-08',
-        priority: 'Medium',
-        reason: 'Equipment maintenance schedule conflict',
-        approvedDate: '2024-01-09',
-        status: 'approved'
-      }
-    ],
-    rejected: [
-      {
-        id: 5,
-        facultyName: 'Prof. Lisa Brown',
-        department: 'English',
-        requestType: 'Leave Request',
-        subject: 'Extended leave request',
-        date: '2024-01-05',
-        priority: 'Low',
-        reason: 'Personal vacation during exam period',
-        rejectedDate: '2024-01-06',
-        rejectionReason: 'Cannot approve leave during examination period',
-        status: 'rejected'
-      }
-    ]
+    pending: allRequests.filter(req => req.status === 'pending'),
+    approved: allRequests.filter(req => req.status === 'approved'),
+    rejected: allRequests.filter(req => req.status === 'rejected')
   };
 
-  const handleApprove = (requestId) => {
-    // In a real app, this would make an API call
-    console.log(`Approving request ${requestId}`);
-    // Add success toast notification
+  const handleApprove = async (requestId, comments = '') => {
+    try {
+      setLoading(true);
+      // Determine if it's a leave or reschedule request
+      const isLeaveRequest = leaveRequests.some(req => req._id === requestId);
+      
+      const endpoint = isLeaveRequest 
+        ? `${API_BASE_URL}/leave-requests/admin/${requestId}/approve`
+        : `${API_BASE_URL}/reschedule-requests/admin/${requestId}/approve`;
+        
+      await axios.patch(endpoint, { comments });
+      
+      // Refresh data
+      await fetchAllData();
+      
+      alert('Request approved successfully!');
+    } catch (err) {
+      console.error('Error approving request:', err);
+      alert(err.response?.data?.message || 'Failed to approve request');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReject = (requestId, reason) => {
-    // In a real app, this would make an API call
-    console.log(`Rejecting request ${requestId} with reason: ${reason}`);
-    // Add success toast notification
+  const handleReject = async (requestId, reason) => {
+    try {
+      setLoading(true);
+      // Determine if it's a leave or reschedule request
+      const isLeaveRequest = leaveRequests.some(req => req._id === requestId);
+      
+      const endpoint = isLeaveRequest 
+        ? `${API_BASE_URL}/leave-requests/admin/${requestId}/reject`
+        : `${API_BASE_URL}/reschedule-requests/admin/${requestId}/reject`;
+        
+      await axios.patch(endpoint, { comments: reason });
+      
+      // Refresh data
+      await fetchAllData();
+      
+      alert('Request rejected successfully!');
+    } catch (err) {
+      console.error('Error rejecting request:', err);
+      alert(err.response?.data?.message || 'Failed to reject request');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getPriorityColor = (priority) => {
@@ -133,45 +185,76 @@ const FacultyRequest = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white p-6 rounded-lg shadow border text-center">
+          <div className="text-4xl mb-4">⏳</div>
+          <p className="text-gray-600">Loading faculty requests...</p>
+        </div>
+      )}
+      
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg">
+          <div className="flex items-center">
+            <div className="text-2xl mr-3">❌</div>
+            <div>
+              <h3 className="text-red-800 font-medium">Error Loading Data</h3>
+              <p className="text-red-600 text-sm">{error}</p>
+              <button 
+                onClick={fetchAllData}
+                className="mt-2 text-red-700 hover:text-red-800 underline text-sm"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Requests</p>
-              <p className="text-2xl font-bold text-orange-600">{mockRequests.pending.length}</p>
+      {!loading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Requests</p>
+                <p className="text-2xl font-bold text-orange-600">{mockRequests.pending.length}</p>
+              </div>
+              <div className="text-3xl">⏳</div>
             </div>
-            <div className="text-3xl">⏳</div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-bold text-green-600">{mockRequests.approved.length}</p>
+              </div>
+              <div className="text-3xl">✅</div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">High Priority</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {allRequests.filter(r => r.priority?.toLowerCase() === 'high').length}
+                </p>
+              </div>
+              <div className="text-3xl">🔥</div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow border">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Requests</p>
+                <p className="text-2xl font-bold text-blue-600">{allRequests.length}</p>
+              </div>
+              <div className="text-3xl">📋</div>
+            </div>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Approved Today</p>
-              <p className="text-2xl font-bold text-green-600">2</p>
-            </div>
-            <div className="text-3xl">✅</div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">High Priority</p>
-              <p className="text-2xl font-bold text-red-600">1</p>
-            </div>
-            <div className="text-3xl">🔥</div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Response Time</p>
-              <p className="text-2xl font-bold text-blue-600">1.5d</p>
-            </div>
-            <div className="text-3xl">⚡</div>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow">
@@ -218,19 +301,33 @@ const FacultyRequest = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>📅 {request.date}</span>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
+                      <span>📅 {request.date}{request.endDate && request.endDate !== request.date ? ` - ${request.endDate}` : ''}</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.priority)}`}>
                         {request.priority} Priority
                       </span>
                       <span>📝 {request.requestType}</span>
+                      <span>📤 Submitted: {request.submittedDate}</span>
                     </div>
-                    <p className="mt-2 text-gray-700">{request.reason}</p>
-                    {request.proposedSolution && (
-                      <p className="mt-1 text-sm text-blue-700">
-                        <strong>Proposed Solution:</strong> {request.proposedSolution}
-                      </p>
+                    
+                    {/* Additional details for different request types */}
+                    {request.requestType === 'Schedule Change' && request.originalTime && (
+                      <div className="mb-2 text-sm text-gray-600">
+                        <span className="font-medium">Original Time:</span> {request.originalTime} → 
+                        <span className="font-medium">Requested Time:</span> {request.requestedTime}
+                      </div>
                     )}
+                    
+                    {request.requestType === 'Leave Request' && request.duration && (
+                      <div className="mb-2 text-sm text-gray-600">
+                        <span className="font-medium">Duration:</span> {request.duration} day{request.duration !== 1 ? 's' : ''}
+                        {request.isFullDay !== undefined && (
+                          <span className="ml-2">({request.isFullDay ? 'Full day' : 'Partial day'})</span>
+                        )}
+                      </div>
+                    )}
+                    
+                    <p className="mt-2 text-gray-700">{request.reason}</p>
                   </div>
                   
                   {activeTab === 'pending' && (
@@ -258,21 +355,27 @@ const FacultyRequest = () => {
                   
                   {activeTab === 'approved' && (
                     <span className="text-green-600 text-sm font-medium">
-                      ✅ Approved on {request.approvedDate}
+                      ✅ Approved{request.approvalDate && ` on ${request.approvalDate}`}
                     </span>
                   )}
                   
                   {activeTab === 'rejected' && (
                     <span className="text-red-600 text-sm font-medium">
-                      ❌ Rejected on {request.rejectedDate}
+                      ❌ Rejected{request.approvalDate && ` on ${request.approvalDate}`}
                     </span>
                   )}
                 </div>
                 
-                {activeTab === 'rejected' && request.rejectionReason && (
-                  <div className="mt-3 p-3 bg-red-50 rounded border-l-4 border-red-200">
-                    <p className="text-sm text-red-700">
-                      <strong>Rejection Reason:</strong> {request.rejectionReason}
+                {(activeTab === 'rejected' || activeTab === 'approved') && request.approvalComments && (
+                  <div className={`mt-3 p-3 rounded border-l-4 ${
+                    activeTab === 'approved' 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <p className={`text-sm ${
+                      activeTab === 'approved' ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      <strong>{activeTab === 'approved' ? 'Approval' : 'Rejection'} Comments:</strong> {request.approvalComments}
                     </p>
                   </div>
                 )}

@@ -25,7 +25,7 @@ const FacultyManagement = () => {
     error: facultyError 
   } = useQuery(
     ['faculty', filters],
-    () => axios.get(`${API_BASE_URL}/faculty`, {
+    () => axios.get(`${API_BASE_URL}/faculties`, {
       params: filters,
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
     }),
@@ -96,6 +96,7 @@ const FacultyManagement = () => {
             <option value="Mechanical Engineering">Mechanical Engineering</option>
             <option value="Electronics">Electronics</option>
             <option value="Management">Management</option>
+            <option value="Research & Publications">Research & Publications</option>
           </select>
           <select
             value={filters.designation}
@@ -140,33 +141,36 @@ const FacultyManagement = () => {
               <div className="flex items-center space-x-4 mb-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 font-semibold">
-                    {facultyMember.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {facultyMember.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{facultyMember.user?.name}</h3>
-                  <p className="text-sm text-gray-600">{facultyMember.professionalInfo?.designation}</p>
-                  <p className="text-xs text-gray-500">{facultyMember.user?.email}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">{facultyMember.name}</h3>
+                  <p className="text-sm text-gray-600">{facultyMember.designation}</p>
+                  <p className="text-xs text-gray-500">{facultyMember.email}</p>
                 </div>
-                <div className={`w-3 h-3 rounded-full ${facultyMember.isActive ? 'bg-green-400' : 'bg-gray-400'}`}></div>
+                <div className="w-3 h-3 rounded-full bg-green-400"></div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500">Employee ID</p>
-                  <p className="font-medium">{facultyMember.professionalInfo?.employeeId || 'N/A'}</p>
+                  <p className="font-medium">{facultyMember.employee_id || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Department</p>
-                  <p className="font-medium">{facultyMember.departments?.join(', ') || 'N/A'}</p>
+                  <p className="font-medium">{facultyMember.department || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Experience</p>
-                  <p className="font-medium">{facultyMember.academicInfo?.experience?.totalExperience || 0} years</p>
+                  <p className="text-gray-500">Working Hours</p>
+                  <p className="font-medium">{facultyMember.working_hours || 0} hours</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Subjects</p>
-                  <p className="font-medium">{facultyMember.teachingInfo?.preferredSubjects?.length || 0}</p>
+                  <p className="text-gray-500">Joining Date</p>
+                  <p className="font-medium">
+                    {facultyMember.joining_date ? 
+                      new Date(facultyMember.joining_date).toLocaleDateString() : 'N/A'}
+                  </p>
                 </div>
               </div>
 
@@ -201,7 +205,7 @@ const FacultyManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-600 font-medium">Active Faculty</p>
-              <p className="text-2xl font-bold text-green-900">{faculty.filter(f => f.isActive).length}</p>
+              <p className="text-2xl font-bold text-green-900">{faculty.length}</p>
             </div>
             <div className="text-3xl">✅</div>
           </div>
@@ -211,7 +215,7 @@ const FacultyManagement = () => {
             <div>
               <p className="text-yellow-600 font-medium">Professors</p>
               <p className="text-2xl font-bold text-yellow-900">
-                {faculty.filter(f => f.professionalInfo?.designation === 'Professor').length}
+                {faculty.filter(f => f.designation === 'Professor').length}
               </p>
             </div>
             <div className="text-3xl">🎓</div>
@@ -222,7 +226,7 @@ const FacultyManagement = () => {
             <div>
               <p className="text-purple-600 font-medium">Departments</p>
               <p className="text-2xl font-bold text-purple-900">
-                {new Set(faculty.flatMap(f => f.departments || [])).size}
+                {new Set(faculty.map(f => f.department).filter(Boolean)).size}
               </p>
             </div>
             <div className="text-3xl">🏢</div>
@@ -313,37 +317,37 @@ const FacultyDetailsView = ({ faculty }) => (
           <div className="text-center mb-6">
             <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-blue-600 font-semibold text-2xl">
-                {faculty.user?.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+                {faculty.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
               </span>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900">{faculty.user?.name}</h3>
-            <p className="text-gray-600">{faculty.professionalInfo?.designation}</p>
-            <p className="text-sm text-gray-500">{faculty.user?.email}</p>
+            <h3 className="text-xl font-semibold text-gray-900">{faculty.name}</h3>
+            <p className="text-gray-600">{faculty.designation}</p>
+            <p className="text-sm text-gray-500">{faculty.email}</p>
           </div>
 
           <div className="space-y-3">
             <div className="flex justify-between">
+              <span className="text-gray-500">Faculty ID</span>
+              <span className="font-medium">{faculty.faculty_id || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-gray-500">Employee ID</span>
-              <span className="font-medium">{faculty.professionalInfo?.employeeId || 'N/A'}</span>
+              <span className="font-medium">{faculty.employee_id || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Department</span>
-              <span className="font-medium">{faculty.departments?.join(', ') || 'N/A'}</span>
+              <span className="font-medium">{faculty.department || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Joining Date</span>
               <span className="font-medium">
-                {faculty.professionalInfo?.joiningDate ? 
-                  new Date(faculty.professionalInfo.joiningDate).toLocaleDateString() : 'N/A'}
+                {faculty.joining_date ? 
+                  new Date(faculty.joining_date).toLocaleDateString() : 'N/A'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Status</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                faculty.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
-                {faculty.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <span className="text-gray-500">Working Hours</span>
+              <span className="font-medium">{faculty.working_hours || 0} hours/day</span>
             </div>
           </div>
         </div>
@@ -351,26 +355,25 @@ const FacultyDetailsView = ({ faculty }) => (
 
       {/* Detailed Info */}
       <div className="lg:col-span-2 space-y-6">
-        {/* Personal Information */}
+        {/* Professional Information */}
         <div className="bg-white border rounded-lg p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h4>
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-500">Date of Birth</label>
-              <p className="font-medium">{faculty.personalInfo?.dateOfBirth ? 
-                new Date(faculty.personalInfo.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+              <label className="text-sm text-gray-500">Designation</label>
+              <p className="font-medium">{faculty.designation || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Gender</label>
-              <p className="font-medium">{faculty.personalInfo?.gender || 'N/A'}</p>
+              <label className="text-sm text-gray-500">Department</label>
+              <p className="font-medium">{faculty.department || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Blood Group</label>
-              <p className="font-medium">{faculty.personalInfo?.bloodGroup || 'N/A'}</p>
+              <label className="text-sm text-gray-500">Expertise</label>
+              <p className="font-medium">{faculty.expertise || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Marital Status</label>
-              <p className="font-medium">{faculty.personalInfo?.maritalStatus || 'N/A'}</p>
+              <label className="text-sm text-gray-500">Working Hours</label>
+              <p className="font-medium">{faculty.working_hours || 0} hours per day</p>
             </div>
           </div>
         </div>
@@ -378,22 +381,29 @@ const FacultyDetailsView = ({ faculty }) => (
         {/* Academic Information */}
         <div className="bg-white border rounded-lg p-6">
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Academic Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
-              <label className="text-sm text-gray-500">Total Experience</label>
-              <p className="font-medium">{faculty.academicInfo?.experience?.totalExperience || 0} years</p>
+              <label className="text-sm text-gray-500">Preferred Subjects</label>
+              <div className="mt-2">
+                {faculty.preferred_subjects ? (
+                  <div className="flex flex-wrap gap-2">
+                    {faculty.preferred_subjects.split(',').map((subject, index) => (
+                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                        {subject.trim()}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-medium">No preferred subjects listed</p>
+                )}
+              </div>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Teaching Experience</label>
-              <p className="font-medium">{faculty.academicInfo?.experience?.teachingExperience || 0} years</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Research Areas</label>
-              <p className="font-medium">{faculty.academicInfo?.researchAreas?.join(', ') || 'N/A'}</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-500">Publications</label>
-              <p className="font-medium">{faculty.academicInfo?.publications?.length || 0}</p>
+              <label className="text-sm text-gray-500">Years of Experience</label>
+              <p className="font-medium">
+                {faculty.joining_date ? 
+                  `${new Date().getFullYear() - new Date(faculty.joining_date).getFullYear()} years` : 'N/A'}
+              </p>
             </div>
           </div>
         </div>
@@ -403,16 +413,12 @@ const FacultyDetailsView = ({ faculty }) => (
           <h4 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-500">Personal Phone</label>
-              <p className="font-medium">{faculty.contactInfo?.personalPhone || 'N/A'}</p>
+              <label className="text-sm text-gray-500">Email</label>
+              <p className="font-medium">{faculty.email || 'N/A'}</p>
             </div>
             <div>
-              <label className="text-sm text-gray-500">Emergency Contact</label>
-              <p className="font-medium">
-                {faculty.contactInfo?.emergencyContact?.name || 'N/A'}
-                {faculty.contactInfo?.emergencyContact?.phone && 
-                  ` (${faculty.contactInfo.emergencyContact.phone})`}
-              </p>
+              <label className="text-sm text-gray-500">Office Location</label>
+              <p className="font-medium">{faculty.department || 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -424,31 +430,15 @@ const FacultyDetailsView = ({ faculty }) => (
 // Add Faculty Modal Component
 const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
   const [formData, setFormData] = useState({
-    userData: {
-      name: '',
-      email: '',
-      password: '',
-      department: ''
-    },
-    facultyData: {
-      departments: [],
-      professionalInfo: {
-        designation: 'Assistant Professor',
-        employeeId: ''
-      },
-      personalInfo: {},
-      academicInfo: {
-        experience: {
-          totalExperience: 0,
-          teachingExperience: 0
-        }
-      },
-      teachingInfo: {
-        specialization: [],
-        maxClassesPerDay: 6,
-        weeklyLoadLimit: 18
-      }
-    }
+    name: '',
+    email: '',
+    employee_id: '',
+    designation: 'Assistant Professor',
+    department: '',
+    expertise: '',
+    working_hours: '8',
+    preferred_subjects: '',
+    joining_date: ''
   });
 
   if (!show) return null;
@@ -478,11 +468,8 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
               <input
                 type="text"
                 required
-                value={formData.userData.name}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  userData: { ...formData.userData, name: e.target.value }
-                })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               />
             </div>
@@ -492,25 +479,19 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
               <input
                 type="email"
                 required
-                value={formData.userData.email}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  userData: { ...formData.userData, email: e.target.value }
-                })}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
               <input
-                type="password"
+                type="text"
                 required
-                value={formData.userData.password}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  userData: { ...formData.userData, password: e.target.value }
-                })}
+                value={formData.employee_id}
+                onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               />
             </div>
@@ -519,15 +500,8 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
               <select
                 required
-                value={formData.userData.department}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  userData: { ...formData.userData, department: e.target.value },
-                  facultyData: { 
-                    ...formData.facultyData, 
-                    departments: [e.target.value] 
-                  }
-                })}
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               >
                 <option value="">Select Department</option>
@@ -535,23 +509,15 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
                 <option value="Mechanical Engineering">Mechanical Engineering</option>
                 <option value="Electronics">Electronics</option>
                 <option value="Management">Management</option>
+                <option value="Research & Publications">Research & Publications</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
               <select
-                value={formData.facultyData.professionalInfo.designation}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  facultyData: {
-                    ...formData.facultyData,
-                    professionalInfo: {
-                      ...formData.facultyData.professionalInfo,
-                      designation: e.target.value
-                    }
-                  }
-                })}
+                value={formData.designation}
+                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               >
                 <option value="Assistant Professor">Assistant Professor</option>
@@ -562,23 +528,48 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Working Hours</label>
               <input
-                type="text"
-                value={formData.facultyData.professionalInfo.employeeId}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  facultyData: {
-                    ...formData.facultyData,
-                    professionalInfo: {
-                      ...formData.facultyData.professionalInfo,
-                      employeeId: e.target.value
-                    }
-                  }
-                })}
+                type="number"
+                min="1"
+                max="12"
+                value={formData.working_hours}
+                onChange={(e) => setFormData({ ...formData, working_hours: e.target.value })}
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Joining Date</label>
+              <input
+                type="date"
+                value={formData.joining_date}
+                onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Expertise</label>
+            <input
+              type="text"
+              value={formData.expertise}
+              onChange={(e) => setFormData({ ...formData, expertise: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              placeholder="e.g., Research Methodology, Academic Writing"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Subjects</label>
+            <textarea
+              value={formData.preferred_subjects}
+              onChange={(e) => setFormData({ ...formData, preferred_subjects: e.target.value })}
+              className="w-full border border-gray-300 rounded-md px-3 py-2"
+              rows="3"
+              placeholder="Enter comma-separated list of preferred subjects"
+            />
           </div>
 
           <div className="flex justify-end space-x-4 pt-6">
@@ -603,37 +594,75 @@ const AddFacultyModal = ({ show, onClose, onSubmit, loading }) => {
   );
 };
 
-// Placeholder components for other tabs
-const FacultyTimetable = ({ facultyId }) => (
-  <div className="text-center py-12">
-    <div className="text-6xl mb-4">📅</div>
-    <h3 className="text-lg font-medium text-gray-900">Faculty Timetable</h3>
-    <p className="text-gray-500">Timetable view will be implemented here</p>
-  </div>
-);
+// Functional components for other tabs (keeping existing implementations)
+const FacultyTimetable = ({ facultyId }) => {
+  if (!facultyId) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">📅</div>
+        <h3 className="text-lg font-medium text-gray-900">Select Faculty</h3>
+        <p className="text-gray-500">Please select a faculty member to view their timetable</p>
+      </div>
+    );
+  }
 
-const FacultyPerformance = ({ facultyId }) => (
-  <div className="text-center py-12">
-    <div className="text-6xl mb-4">📊</div>
-    <h3 className="text-lg font-medium text-gray-900">Faculty Performance</h3>
-    <p className="text-gray-500">Performance analytics will be implemented here</p>
-  </div>
-);
+  return (
+    <div className="text-center py-12">
+      <div className="text-6xl mb-4">🚧</div>
+      <h3 className="text-lg font-medium text-gray-900">Timetable Module</h3>
+      <p className="text-gray-500">Timetable functionality will be implemented based on your scheduling requirements</p>
+    </div>
+  );
+};
 
-const FacultyLeaves = ({ facultyId }) => (
-  <div className="text-center py-12">
-    <div className="text-6xl mb-4">🗓️</div>
-    <h3 className="text-lg font-medium text-gray-900">Leave Management</h3>
-    <p className="text-gray-500">Leave management will be implemented here</p>
-  </div>
-);
+const FacultyPerformance = ({ facultyId }) => {
+  if (!facultyId) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">📈</div>
+        <h3 className="text-lg font-medium text-gray-900">Select Faculty</h3>
+        <p className="text-gray-500">Please select a faculty member to view their performance</p>
+      </div>
+    );
+  }
 
-const SubjectAssignment = () => (
-  <div className="text-center py-12">
-    <div className="text-6xl mb-4">📚</div>
-    <h3 className="text-lg font-medium text-gray-900">Subject Assignment</h3>
-    <p className="text-gray-500">Subject assignment functionality will be implemented here</p>
-  </div>
-);
+  return (
+    <div className="text-center py-12">
+      <div className="text-6xl mb-4">🚧</div>
+      <h3 className="text-lg font-medium text-gray-900">Performance Module</h3>
+      <p className="text-gray-500">Performance tracking functionality will be implemented based on your evaluation criteria</p>
+    </div>
+  );
+};
+
+const FacultyLeaves = ({ facultyId }) => {
+  if (!facultyId) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">🗓️</div>
+        <h3 className="text-lg font-medium text-gray-900">Select Faculty</h3>
+        <p className="text-gray-500">Please select a faculty member to view their leave records</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12">
+      <div className="text-6xl mb-4">🚧</div>
+      <h3 className="text-lg font-medium text-gray-900">Leave Management Module</h3>
+      <p className="text-gray-500">Leave management functionality will be implemented based on your leave policies</p>
+    </div>
+  );
+};
+
+const SubjectAssignment = () => {
+  return (
+    <div className="text-center py-12">
+      <div className="text-6xl mb-4">🚧</div>
+      <h3 className="text-lg font-medium text-gray-900">Subject Assignment Module</h3>
+      <p className="text-gray-500">Subject assignment functionality will be implemented based on your curriculum structure</p>
+    </div>
+  );
+};
 
 export default FacultyManagement;

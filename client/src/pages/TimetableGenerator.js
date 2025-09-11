@@ -11,8 +11,7 @@ const TimetableGenerator = () => {
     name: '',
     academicYear: new Date().getFullYear().toString(),
     semester: 1,
-    department: user?.department || '',
-    algorithm: 'constraint_satisfaction'
+    department: user?.department || ''
   });
   const [generating, setGenerating] = useState(false);
 
@@ -108,20 +107,6 @@ const TimetableGenerator = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Algorithm
-            </label>
-            <select
-              name="algorithm"
-              value={formData.algorithm}
-              onChange={handleChange}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="constraint_satisfaction">Constraint Satisfaction</option>
-              <option value="genetic_algorithm">Genetic Algorithm</option>
-            </select>
-          </div>
 
           <div className="pt-4">
             <button

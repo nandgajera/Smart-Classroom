@@ -44,4 +44,15 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { authenticate, authorize };
+// Convenience middleware functions
+const auth = authenticate;
+const facultyAuth = authorize('faculty', 'hod', 'admin');
+const adminAuth = authorize('hod', 'admin');
+
+module.exports = { 
+  authenticate, 
+  authorize,
+  auth,
+  facultyAuth,
+  adminAuth
+};
