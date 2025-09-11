@@ -65,8 +65,8 @@ const createBasicData = async () => {
   console.log('👥 Creating basic user data...');
   
   try {
-    const adminPassword = await bcrypt.hash('admin123', 12);
-    const defaultPassword = await bcrypt.hash('password123', 12);
+    // const adminPassword = await bcrypt.hash('admin123', 12);
+    // const defaultPassword = await bcrypt.hash('password123', 12);
     
     // Create fewer users initially
     const users = await User.create([
@@ -78,10 +78,11 @@ const createBasicData = async () => {
         department: 'Administration',
         employeeId: 'ADM001'
       },
+      
       {
         name: 'System Administrator',
         email: 'admin123@test.com',
-        password: adminPassword,
+        password: 'admin123',
         role: 'admin',
         department: 'Administration',
         employeeId: 'ADM002'
@@ -89,7 +90,7 @@ const createBasicData = async () => {
       {
         name: 'Dr. Priya Sharma',
         email: 'hod.engineering@university.edu',
-        password: defaultPassword,
+        password: 'password123',
         role: 'hod',
         department: 'Computer Science',
         employeeId: 'HOD001'
@@ -97,7 +98,7 @@ const createBasicData = async () => {
       {
         name: 'Dr. Sarah Johnson',
         email: 'sarah.johnson@university.edu',
-        password: defaultPassword,
+        password: 'password123',
         role: 'faculty',
         department: 'Computer Science',
         employeeId: 'FAC001'

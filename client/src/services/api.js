@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -68,6 +68,15 @@ export const studentsAPI = {
   addPayment: (id, data) => api.post(`/students/${id}/payments`, data),
   getStatistics: (params) => api.get('/students/statistics/overview', { params }),
   delete: (id) => api.delete(`/students/${id}`),
+};
+
+// Faculty API
+export const facultyAPI = {
+  getAll: (params) => api.get('/faculty', { params }),
+  getById: (id) => api.get(`/faculty/${id}`),
+  create: (data) => api.post('/faculty', data),
+  update: (id, data) => api.put(`/faculty/${id}`, data),
+  delete: (id) => api.delete(`/faculty/${id}`),
 };
 
 // Analytics API (mock for now)

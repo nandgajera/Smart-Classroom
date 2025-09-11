@@ -110,22 +110,56 @@ router.get('/:id', authenticate, async (req, res) => {
 // @access  Private (Admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { userData, facultyData } = req.body;
+    const { userData, facultyData } = req.body || {};
 
-    // Create user first
+    if (!userData || !facultyData) {
+      return res.status(400).json({ success: false, message: 'userData and facultyData are required' });
+    }
+
+    // Validate required user fields
+    const requiredUserFields = ['name', 'email', 'password', 'department'];
+    for (const field of requiredUserFields) {
+      if (!userData[field] || String(userData[field]).trim() === '') {
+        return res.status(400).json({ success: false, message: `Missing required field: userData.${field}` });
+      }
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: userData.email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'A user with this email already exists' });
+    }
+
+    // Normalize faculty payload
+    const normalizedFaculty = { ...facultyData };
+
+    // Ensure departments include the user's department if none provided
+    if (!Array.isArray(normalizedFaculty.departments) || normalizedFaculty.departments.length === 0) {
+      normalizedFaculty.departments = [userData.department];
+    }
+
+    // Ensure professionalInfo exists
+    normalizedFaculty.professionalInfo = {
+      designation: 'Assistant Professor',
+      ...normalizedFaculty.professionalInfo,
+      joiningDate: new Date()
+    };
+
+    // If employeeId is empty string or falsy, set to null to satisfy unique+sparse
+    if (!normalizedFaculty.professionalInfo.employeeId || String(normalizedFaculty.professionalInfo.employeeId).trim() === '') {
+      normalizedFaculty.professionalInfo.employeeId = null;
+    }
+
+    // Create user first (role forced to faculty)
     const user = await User.create({
       ...userData,
       role: 'faculty'
     });
 
-    // Create faculty profile
+    // Create faculty profile linked to the user
     const faculty = await Faculty.create({
       user: user._id,
-      ...facultyData,
-      professionalInfo: {
-        ...facultyData.professionalInfo,
-        joiningDate: new Date()
-      }
+      ...normalizedFaculty
     });
 
     const populatedFaculty = await Faculty.findById(faculty._id)
@@ -137,6 +171,17 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       data: populatedFaculty
     });
   } catch (error) {
+    // Handle duplicate key errors nicely
+    if (error.code === 11000) {
+      const key = Object.keys(error.keyPattern || {})[0] || 'field';
+      const dupMessage = key.includes('email')
+        ? 'Email is already in use'
+        : key.toLowerCase().includes('employeeid')
+          ? 'Employee ID is already in use'
+          : 'Duplicate value for a unique field';
+      return res.status(400).json({ success: false, message: dupMessage });
+    }
+
     res.status(400).json({
       success: false,
       message: error.message

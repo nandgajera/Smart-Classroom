@@ -74,7 +74,7 @@ const facultySchema = new mongoose.Schema({
   
   // Professional Information
   professionalInfo: {
-    employeeId: { type: String, unique: true, sparse: true },
+    employeeId: { type: String, unique: true, sparse: true, default: null },
     joiningDate: { type: Date, required: true },
     designation: { type: String, enum: ['Professor', 'Associate Professor', 'Assistant Professor', 'Lecturer', 'Adjunct'], required: true },
     currentSalary: { type: Number },
@@ -119,6 +119,14 @@ const facultySchema = new mongoose.Schema({
 
 facultySchema.index({ 'departments': 1 });
 facultySchema.index({ 'specialization': 1 });
+
+// Pre-save middleware to handle empty employeeId
+facultySchema.pre('save', function(next) {
+  if (this.professionalInfo && this.professionalInfo.employeeId === '') {
+    this.professionalInfo.employeeId = null;
+  }
+  next();
+});
 
 module.exports = mongoose.model('Faculty', facultySchema);
 
